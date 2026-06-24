@@ -1,0 +1,85 @@
+# Agent Operations Manual - Antigravity
+
+This document details the operational workflow, capabilities, and best practices for working with your agentic coding assistant, **Antigravity**.
+
+---
+
+## 1. How the Agent Operates
+
+The agent operates in an **interactive auto-mode**. It does not require you to manually write code, debug syntax errors, configure environment variables, or execute command-line instructions. 
+
+When you issue a request:
+1. The agent analyzes the instruction.
+2. It explores the workspace, reads project files, and checks configurations automatically.
+3. It proposes an implementation plan (for complex tasks) or executes the changes directly (for simpler fixes).
+4. It runs terminal commands and tests in the background (subject to your approval).
+5. It opens a browser subagent to visually interact with and test the app.
+6. It writes a walkthrough showing its verification.
+
+---
+
+## 2. Step-by-Step Operation Process
+
+Here is the flow of how you and the agent collaborate:
+
+```mermaid
+graph TD
+    A[User Request] --> B[Agent Research & Planning]
+    B --> C{Complex Change?}
+    C -- Yes --> D[Create Implementation Plan]
+    D --> E[User Approves/Rejects Plan]
+    E -- Approved --> F[Execute Code Changes]
+    C -- No --> F
+    F --> G[Run Terminal/Build Commands]
+    G --> H[User Approves Command Execution]
+    H -- Approved --> I[Browser Verification Subagent]
+    I --> J[Generate Walkthrough Document]
+    J --> K[User Reviews Completed Task]
+```
+
+### Step 1: Initiating a Task (User Request)
+Describe your desired outcome in plain language. Examples:
+- *"Add an email field to the loan application form and save it to the sqlite database."*
+- *"Find and fix why the chat page displays a blank screen."*
+- *"Create a styling guide for the frontend and apply a sleek dark mode."*
+
+### Step 2: Planning & Research (Automatic)
+The agent will use tools like `list_dir`, `view_file`, and `grep_search` to map your project's codebase, dependencies, and architecture. 
+- For complex changes, the agent will present an **Implementation Plan** and wait for your approval.
+- For simple or investigatory tasks, the agent proceeds directly to save time.
+
+### Step 3: Code Modification (Automatic)
+The agent uses specialized code-replacement tools to surgically modify your files without disrupting existing formatting or unrelated comments.
+
+### Step 4: Command Execution & User Approval (Interactive)
+To build, test, or run your project (e.g., `npm run dev`), the agent will propose shell commands.
+- **Human-in-the-loop**: The IDE user interface will show a prompt asking you to **Approve** or **Reject** the command.
+- Once you click **Approve**, the command runs automatically in the background, and the agent monitors the log stream.
+
+### Step 5: Verification (Automatic)
+The agent initiates a headless **Browser Subagent** to navigate your local website (e.g., `http://localhost:3000`), click buttons, type text, and ensure there are no console errors.
+- It automatically captures screenshots and recorded animations of the app.
+
+### Step 6: Walkthrough & Delivery (Automatic)
+The agent creates a `walkthrough.md` file detailing the changes, and embeds the screenshots/recordings of the working website so you can verify the results instantly.
+
+---
+
+## 3. Useful Slash Commands
+
+To trigger specialized workflows, you can type these slash commands in the chat interface:
+
+| Slash Command | Usage |
+| :--- | :--- |
+| `/goal` | Use this to run a long-running task (e.g., overnight). The agent will run with extra thoroughness and complete the goal entirely before stopping. |
+| `/schedule` | Use this to run instructions on a recurring schedule or set a one-time timer reminder. |
+| `/grill-me` | Use this to trigger an interactive interview where the agent asks clarifying questions to refine design decisions. |
+| `/learn` | Use this after correcting the agent or completing a complex setup so the agent remembers this behavior for future conversations. |
+
+---
+
+## 4. Best Practices for the User
+
+- **Be Specific**: Mention the names of components, URLs, or files if you know them.
+- **Use Auto-Mode**: Let the agent write the code and run the commands. Only click "Approve" when prompted.
+- **Review Walkthroughs**: Open the generated `walkthrough.md` links to check screenshots and verify that everything looks correct without needing to manually test it.

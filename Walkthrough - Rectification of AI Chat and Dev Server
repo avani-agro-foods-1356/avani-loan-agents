@@ -1,0 +1,36 @@
+# Walkthrough - Rectification of AI Chat and Dev Server
+
+I have successfully checked and rectified the configuration issues to restore full functionality to the chat advisor agent on port 3000.
+
+## Root Cause Analysis
+
+1. **Incorrect API Key Environment Variable**: The Vercel AI SDK `@ai-sdk/google` provider checks for `GOOGLE_GENERATIVE_AI_API_KEY` by default. The project configuration in `.env.local` defined `GEMINI_API_KEY`, but the provider was instantiated globally without explicitly passing this key. This caused the API route to throw a missing key error.
+2. **Model Availability**: The model `gemini-1.5-flash` is not listed or supported for the new key's profile, whereas the newer `gemini-2.5-flash` model is active and fully functional.
+3. **Port Conflict**: A stale Node process was already listening on port `3000`, causing the newly started Next.js dev server to fallback to port `3001` where `.env.local` variables could conflict or lead to confusion.
+
+## Proposed & Implemented Changes
+
+### Chat API Route
+#### [MODIFY] [route.ts](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/app/api/chat/route.ts)
+- Replaced the direct global `google` provider import with `createGoogleGenerativeAI` from `@ai-sdk/google`.
+- Dynamically instantiated the google client within the `POST` request handler, explicitly mapping `process.env.GEMINI_API_KEY` to the `apiKey` configuration.
+- Upgraded the chat model to `gemini-2.5-flash` (confirmed active and working).
+
+### System Cleanup
+- Terminated the stale Node.exe process (PID 6796) listening on port 3000.
+- Restarted the Next.js dev server, binding it successfully to port 3000 as defined in `.env.local`.
+
+---
+
+## Verification Results
+
+A browser subagent was used to navigate to `http://localhost:3000/chat` and interact with the AI Advisor agent.
+
+1. **Initial Load**: Loaded successfully. No connection error banner appeared.
+2. **Conversation Flow**: Clicked "Check Personal Loan" suggestion. The AI Advisor responded instantly, prompting the user for details to assess their Personal Loan eligibility.
+3. **API Integrity**: The backend `/api/chat` route returned HTTP 200 and streamed the response without issue.
+
+![AI Advisor Working screenshot](file:///C:/Users/ALPHA-1/.gemini/antigravity-ide/brain/6abdbab9-a73b-4210-9a8e-fe60d88714a7/chat_response_1782286571355.png)
+*Above: Screenshot showing the AI Advisor successfully responding to the user suggestion on port 3000.*
+
+The application is now fully corrected and running locally on port 3000.

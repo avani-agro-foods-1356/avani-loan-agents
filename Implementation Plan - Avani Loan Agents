@@ -1,0 +1,105 @@
+# Implementation Plan - Avani Loan Agents
+
+This plan outlines the architecture, features, and setup instructions to build the **Avani Loan Agents** platform. The system consists of a premium web portal for **Avani Loan Services**, an interactive AI Loan Advisor, an admin lead management dashboard, and multi-channel integrations (WhatsApp/Twilio, HubSpot, Google Sheets, Vapi, Zapier).
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Key Architectural and Integration Decisions**
+> 1. **AI Model Provider**: The system will be built using the **Vercel AI SDK**, supporting multiple LLM providers. By default, it will support **Google Gemini** (`@ai-sdk/google`) and **OpenAI** (`@ai-sdk/openai`). You will need to provide the corresponding API keys (`GEMINI_API_KEY` or `OPENAI_API_KEY`) in your environment.
+> 2. **Database Strategy**: We will use **SQLite** (via `better-sqlite3` or Prisma) as a local, zero-config database that stores leads and chat history. For Vercel production deployment, it will support switching to **PostgreSQL** (e.g., Neon or Supabase) via a simple environment variable (`DATABASE_URL`).
+> 3. **WhatsApp / Twilio Integration**: The WhatsApp integration is set up via a Webhook endpoint (`/api/whatsapp`). It is designed to work with either **Twilio WhatsApp API** or the **Meta WhatsApp Cloud API**.
+> 4. **CRM & Google Sheets Integration**: Leads will be synced to **HubSpot** using its Contacts API, and to **Google Sheets** via either Google Sheets API or a webhook (Zapier/Make).
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> - Please confirm if you have a preferred AI model provider (e.g., Google Gemini, OpenAI, or Anthropic) so we can optimize the agent prompts and tool definitions for that model.
+> - Do you already have API credentials for **HubSpot**, **Twilio**, or **Google Sheets**? If so, we can configure the `.env.local` template with them. If not, the application will run in a "Simulation/Mock" mode for these integrations so that you can test the end-to-end flow without active credentials.
+
+---
+
+## Proposed Changes
+
+We will build a complete Next.js project inside the `c:\Users\ALPHA-1\Desktop\AVANI LOAN AGENTS` directory. Since the workspace is currently empty, we will bootstrap it and create the following directory structure:
+
+```
+avani-loan-agents/
+├── app/
+│   ├── page.tsx                     # Premium Landing Page for Avani Loan Services
+│   ├── chat/
+│   │   └── page.tsx                 # Interactive Premium Chat Interface
+│   ├── dashboard/
+│   │   └── page.tsx                 # Admin Lead Management Dashboard
+│   ├── layout.tsx                   # Main Layout (fonts, global styles)
+│   ├── globals.css                  # Custom Premium Vanilla CSS design system
+│   └── api/
+│       ├── chat/
+│       │   └── route.ts             # AI SDK Chat endpoint with tool calling
+│       ├── whatsapp/
+│       │   └── route.ts             # WhatsApp/Twilio Webhook endpoint
+│       ├── vapi/
+│       │   └── route.ts             # Vapi Voice Agent Webhook endpoint
+│       └── integration/
+│           ├── hubspot/route.ts     # HubSpot lead sync trigger
+│           └── sheets/route.ts      # Google Sheets logging trigger
+├── lib/
+│   ├── agents/
+│   │   └── advisor-prompt.ts        # System prompts for Loan Agent personas
+│   ├── db/
+│   │   ├── client.ts                # Database connector (SQLite/PostgreSQL)
+│   │   └── seed.ts                  # Seed data (loan products, sample leads)
+│   ├── tools/
+│   │   ├── eligibility.ts           # Business logic for loan eligibility checks
+│   │   └── calculators.ts           # Loan EMI and interest calculator tools
+│   ├── services/
+│   │   ├── hubspot.ts               # HubSpot CRM service
+│   │   ├── sheets.ts                # Google Sheets service
+│   │   └── zapier.ts                # Zapier webhook service
+│   └── types.ts                     # Core TypeScript declarations
+├── package.json                     # Project dependencies
+├── next.config.ts                   # Next.js configurations
+└── README.md                        # User guides & deployment documentation
+```
+
+### 1. Core Platform & Design System
+We will bootstrap the application using Next.js (App Router) with TypeScript.
+To ensure the premium visual style requested, we will implement a custom design system in `app/globals.css` with:
+- Curated luxury financial palette: Deep Royal Indigo (primary), Premium Warm Gold (accents), Sleek Charcoal (text), and Soft Cream (backgrounds).
+- Beautiful glassmorphic components, modern typography (Outfit/Inter), smooth transition effects, and card layouts.
+- Zero reliance on external complex CSS libraries, using highly maintainable, modern vanilla CSS custom properties.
+
+### 2. AI Agents & Business Logic
+We will use the **Vercel AI SDK** to implement the agent loop:
+- **Loan Eligibility Advisor Tool**: Runs deterministic validation based on the user's monthly income, employment type, loan type, and credit score.
+- **Document checklist Tool**: Generates required document list dynamically.
+- **EMI Calculator Tool**: Returns monthly payments, interest breakdown, and amortization.
+- **Consultation Scheduler**: Mocks appointment bookings for Sachin Shinde.
+
+### 3. CRM, Webhooks & Integrations
+- **HubSpot**: Logs contact info, loan requirements, and lead score.
+- **Google Sheets**: Appends rows for new leads.
+- **Twilio/WhatsApp**: Standard webhook endpoint to receive and reply to WhatsApp messages.
+- **Zapier**: Standard webhook endpoint to push data to Zapier for custom workflows.
+- **Vapi**: JSON response mapping for voice agent calls.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- We will write a check script (`scripts/test-integrations.ts`) to verify:
+  - Local database CRUD operations.
+  - Eligibility calculation logic.
+  - HubSpot, Google Sheets, and Zapier mockup client responses.
+  - Webhook API response headers and formats.
+
+### Manual Verification
+- Run `npm run dev` to start the local Next.js server.
+- Test the Landing Page at `http://localhost:3000`.
+- Interact with the AI Loan Agent in the web chat interface at `http://localhost:3000/chat` to verify eligibility checking, calculations, and lead capture.
+- Monitor captured leads in the Admin Dashboard at `http://localhost:3000/dashboard` and verify webhook execution logs.

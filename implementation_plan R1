@@ -1,0 +1,85 @@
+# Implementation Plan - Feature Enhancements for Avani Loan Agents
+
+This plan outlines the design and implementation to address the following requests for the **Avani Loan Agents** application:
+1. **Employment History**: Add a feature to collect loan applicants' employment history.
+2. **SQLite Database Sync Fix**: Diagnose and fix why new customer inquiries are not being saved to the database.
+3. **Responsive Loan Calculator**: Create/improve a premium, fully responsive interactive loan calculator widget on the homepage.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Key Database & UI Modifications**
+> 1. **Schema Update**: We will add an `employment_history` column to the `leads` table. If SQLite mode is active, the database table will automatically update its schema.
+> 2. **Home Page Calculator Integration**: We will build a brand new premium React-based loan calculator directly on the homepage, allowing clients to slide values and click to consult the AI Advisor.
+> 3. **Chat URL Query Integration**: The calculator on the homepage will redirect to the AI Advisor chat, pre-seeding the loan details in the chatbot prompt so the client doesn't need to re-enter them.
+
+---
+
+## Open Questions
+
+None. We have mapped out the exact files and code adjustments required.
+
+---
+
+## Proposed Changes
+
+### Component 1: Database & AI Route Enhancements (Backend)
+
+#### [MODIFY] [client.ts](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/lib/db/client.ts)
+- Add `employment_history?: string` to the `Lead` TypeScript interface.
+- Add `employment_history TEXT` to the SQLite `CREATE TABLE IF NOT EXISTS leads` statement.
+- Update `saveLead` to include `employment_history` in both the column names and parameters list.
+- **Bug Fix**: In JSON fallback mode, change `db.run('', [...])` to `db.run('INSERT INTO leads', [...])`. Currently, the mock DB client's `run` method filters on `sql.includes('INSERT INTO leads')`. Because the fallback code passed an empty string `''` as SQL, it skipped database insertion entirely, causing leads to not be saved.
+
+#### [MODIFY] [seed.ts](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/lib/db/seed.ts)
+- Add sample `employment_history` values to the seeder file to display in the dashboard for pre-existing leads.
+
+#### [MODIFY] [advisor-prompt.ts](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/lib/agents/advisor-prompt.ts)
+- Modify system prompt instructions to direct the AI Advisor to collect the user's **employment history** (e.g. current company name, designation, and tenure / years of experience) prior to qualifying.
+
+#### [MODIFY] [route.ts](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/app/api/chat/route.ts)
+- Add `employmentHistory` to `submitQualifiedLead` tool parameters in the Zod validation schema.
+- Pass `employmentHistory` to `saveLead` during tool execution.
+
+#### [MODIFY] [route.ts](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/app/api/vapi/route.ts)
+- Support extracting `employmentHistory` from Vapi webhook payloads and regex parsing from call transcripts.
+
+---
+
+### Component 2: Dashboard UI Updates
+
+#### [MODIFY] [page.tsx](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/app/dashboard/page.tsx)
+- Update local `Lead` interface to include `employment_history`.
+- In the sidebar details drawer, display the client's **Employment History** block beneath their monthly income stats.
+
+---
+
+### Component 3: Responsive Home Page Loan Calculator Widget
+
+#### [MODIFY] [page.tsx](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/app/page.tsx)
+- Convert the homepage to a client component (`'use client'`).
+- Build an interactive **Premium Loan Calculator Widget** section on the homepage:
+  - Interactive slider controls for **Loan Amount** (₹1L - ₹1Cr), **Interest Rate** (5% - 20%), and **Tenure** (1 - 20 years).
+  - Live calculations for **Monthly EMI**, **Total Interest Payable**, and **Total Repayment Amount**.
+  - A visual breakdown of Principal vs Interest.
+  - A quick-action button: *"Apply & Pre-Qualify with AI"* which redirects to the chat page with query parameters (`/chat?amount=...&type=...`).
+
+#### [MODIFY] [page.tsx](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/app/chat/page.tsx)
+- Read query parameters (`amount`, `type`) from the URL on load.
+- If present, pre-fill the chat conversation or automatically send the calculation metrics as the initial user message so the AI Loan Advisor can analyze it immediately.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- We will execute the dev build and verification to ensure there are no TypeScript or Next.js build errors.
+- We will run the seeder script or check database contents to confirm the `employment_history` column is added and populated.
+
+### Manual Verification
+- Navigate to `http://localhost:3000/` and interact with the new Loan Calculator sliders. Check responsiveness across mobile/desktop screen sizes.
+- Click *"Apply & Pre-Qualify with AI"* and verify it transfers the state to the chat interface.
+- Complete an AI eligibility check chat, approve database submission, and verify the lead is successfully stored.
+- Check the Leads Dashboard at `http://localhost:3000/dashboard` to verify the lead details and employment history are correctly saved and loaded from the SQLite database.

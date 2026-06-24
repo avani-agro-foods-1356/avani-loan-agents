@@ -1,0 +1,35 @@
+# Walkthrough - Feature Additions & Database Fix
+
+We have successfully implemented and verified all the requested features and fixes in the **Avani Loan Agents** platform.
+
+---
+
+## 🛠️ Summary of Changes
+
+### 1. Database & Inquiry Saving Fix (`lib/db/client.ts`)
+* **The Bug**: In JSON fallback mode (used when SQLite binary fails on Windows), `db.run` was called with an empty string SQL argument (`db.run('', [...])`). Since the mock client checked if `sql.includes('INSERT INTO leads')`, it rejected the call, failing to save customer inquiries.
+* **The Fix**: Standardized the mock query call to `db.run('INSERT INTO leads', [...])`, ensuring that leads and inquiries are saved correctly in both SQLite and JSON DB fallback modes.
+* **Schema Upgrade**: Added an `employment_history` (TEXT) field to the `Lead` interface, SQLite database table definition, seeder data, and insert operations.
+
+### 2. Employment History Feature
+* **AI System Prompt (`lib/agents/advisor-prompt.ts`)**: Instructed the AI Advisor to gather the applicant's current company/business, title, and years of experience.
+* **Chat Route & Tools (`app/api/chat/route.ts`)**: Updated the `submitQualifiedLead` schema and execution logic to accept and save `employmentHistory`.
+* **Voice Agent Webhook (`app/api/vapi/route.ts`)**: Added fallback regex parsing and schema extraction to retrieve and save `employment_history` from voice transcripts.
+* **Admin Dashboard UI (`app/dashboard/page.tsx`)**: Rendered the `employment_history` field in the selected lead profile detail sidebar.
+
+### 3. Homepage Loan Calculator Widget (`app/page.tsx` & `app/chat/page.tsx`)
+* **Dynamic Sliders**: Created a premium React loan calculator where users can slide **Loan Amount** (₹1L - ₹1Cr), **Interest Rate** (5% - 20%), and **Tenure** (1 - 20 Years) to see live-calculated EMI, total interest, and total repayment.
+* **AI Chat Pre-Seeding**: Included a "Pre-Qualify with AI Advisor" button which redirects to `/chat?amount=...&type=...`.
+* **Chat Mount Hook**: Configured the `/chat` page to automatically read these URL query parameters and pre-seed the chatbot conversation so users don't have to re-enter their requirements.
+
+---
+
+## 🧪 Verification Evidence
+
+### Browser Verification Recording
+The web recording below demonstrates the user interaction flow:
+1. Moving sliders on the newly designed Loan Calculator widget on the homepage.
+2. Clicking "Pre-Qualify with AI Advisor" to automatically start a pre-seeded chat with the AI Loan Advisor.
+3. Simulating a voice call webhook inside the dashboard to verify that Rajesh Kulkarni is successfully saved in the SQLite database and displays their employment history.
+
+![Verification Web Recording](file:///C:/Users/ALPHA-1/.gemini/antigravity-ide/brain/432c6a54-57e7-442a-8bcc-4e005a0ec28d/verify_advanced_features_1782291966800.webp)

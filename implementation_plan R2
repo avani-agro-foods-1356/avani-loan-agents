@@ -1,0 +1,59 @@
+# Deployment Plan - GitHub and Vercel
+
+This plan details the steps to publish the **Avani Loan Agents** project to a public GitHub repository and deploy it to Vercel.
+
+---
+
+## User Review Required
+
+> [!WARNING]
+> **API Credentials & Database Persistence on Vercel**
+> 1. **Security**: We will create a `.gitignore` file to ensure that `.env.local` (containing API keys) and local databases (`database.db`) are **never** pushed to public GitHub.
+> 2. **Environment Variables**: For the AI Chat and integrations to work on the live Vercel URL, you will need to add `GEMINI_API_KEY` and other integration keys in the Vercel Project Dashboard.
+> 3. **SQLite Ephemerality**: Vercel runs on a serverless, read-only ephemeral file system. This means writing to `database.db` on Vercel will fail or reset on every cold start. The website will successfully run, but production leads will be sent to your active integrations (HubSpot, Google Sheets, Make, Pabbly) and not saved persistently in SQLite on Vercel.
+
+---
+
+## Open Questions
+
+None.
+
+---
+
+## Proposed Changes
+
+### Component 1: Git & Repository Setup
+
+#### [NEW] [.gitignore](file:///c:/Users/ALPHA-1/Desktop/AVANI%20LOAN%20AGENTS/.gitignore)
+Create a standard Next.js `.gitignore` file to prevent committing dependency folders (`node_modules`), build output (`.next`), local environment secrets (`.env.local`), and SQLite files (`*.db`).
+
+#### Git Initial Commit
+We will initialize the git repository and commit the clean codebase:
+```bash
+git init
+git add .
+git commit -m "Initial commit - Avani Loan Agents"
+```
+
+#### GitHub Repo Creation
+Using the pre-authenticated GitHub CLI (`gh`), we will create a public repository and push the code:
+```bash
+gh repo create avani-loan-agents --public --source=. --remote=origin --push
+```
+
+---
+
+### Component 2: Vercel Deployment
+
+We will link and deploy the project to Vercel:
+```bash
+vercel --confirm
+```
+
+---
+
+## Verification Plan
+
+### Manual Verification
+- We will verify the GitHub repository URL is created and accessible.
+- We will check the Vercel build status and confirm the deployment URL is active and running.
