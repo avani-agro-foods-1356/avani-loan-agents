@@ -16,7 +16,12 @@ import {
   Share2,
   FileText,
   FileSpreadsheet,
-  HelpCircle
+  HelpCircle,
+  Mic,
+  PhoneForwarded,
+  Link as LinkIcon,
+  Settings,
+  Workflow
 } from 'lucide-react';
 
 interface Lead {
@@ -176,28 +181,71 @@ export default function DashboardPage() {
             <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.25rem' }}>Maharashtra, India</p>
           </div>
 
-          <ul className="sidebar-menu">
-            <li>
-              <Link href="/dashboard" className="menu-item active">
-                <Database size={18} /> Leads Repository
-              </Link>
-            </li>
-            <li>
-              <Link href="/chat" className="menu-item">
-                <MessageSquare size={18} /> AI Web Chat
-              </Link>
-            </li>
-            <li>
-              <a href="https://app-na2.hubspot.com/global-home/244236573" target="_blank" rel="noreferrer" className="menu-item">
-                <ExternalLink size={18} /> HubSpot CRM <ExternalLink size={12} style={{ marginLeft: 'auto' }} />
-              </a>
-            </li>
-            <li>
-              <a href="https://script.google.com/macros/s/AKfycbwadPvvLiVgLOUbIcnQm7ZeLEOsh1bamEYVJKi11ub8fZc-EAVugAv2WvgfTc5Izg7A4w/exec" target="_blank" rel="noreferrer" className="menu-item">
-                <FileSpreadsheet size={18} /> Google Sheets
-              </a>
-            </li>
-          </ul>
+          <div style={{ marginTop: '2rem' }}>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '1.25rem', marginBottom: '0.5rem', display: 'block' }}>
+              Core Operations
+            </span>
+            <ul className="sidebar-menu" style={{ marginTop: '0.5rem' }}>
+              <li>
+                <Link href="/dashboard" className="menu-item active">
+                  <Database size={18} /> Leads Repository
+                </Link>
+              </li>
+              <li>
+                <Link href="/chat" className="menu-item">
+                  <MessageSquare size={18} /> AI Web Chat
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div style={{ marginTop: '2rem' }}>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '1.25rem', marginBottom: '0.5rem', display: 'block' }}>
+              Integrations & Dashboards
+            </span>
+            <ul className="sidebar-menu" style={{ marginTop: '0.5rem' }}>
+              <li>
+                <a href="https://app-na2.hubspot.com/global-home/244236573" target="_blank" rel="noreferrer" className="menu-item">
+                  <ExternalLink size={18} /> HubSpot CRM
+                </a>
+              </li>
+              <li>
+                <a href="https://app-na2.hubspot.com/contacts/244236573/objects/0-1/views/all/list" target="_blank" rel="noreferrer" className="menu-item">
+                  <Users size={18} /> Lead Data (HubSpot)
+                </a>
+              </li>
+              <li>
+                <a href="https://script.google.com/macros/s/AKfycbxcJsd9RTK2z9JijcJQQQZc49s_gI02LhhqhZbl5K3-aWuM2QJTkmdWABrQExqg3_vB/exec" target="_blank" rel="noreferrer" className="menu-item">
+                  <FileSpreadsheet size={18} /> Google Sheets
+                </a>
+              </li>
+              <li>
+                <a href="https://dashboard.vapi.ai" target="_blank" rel="noreferrer" className="menu-item">
+                  <Mic size={18} /> Vapi AI Console
+                </a>
+              </li>
+              <li>
+                <a href="https://console.twilio.com/dashboard?variant_override=non-dev" target="_blank" rel="noreferrer" className="menu-item">
+                  <PhoneForwarded size={18} /> Twilio Dashboard
+                </a>
+              </li>
+              <li>
+                <a href="https://my.exotel.com/avanifinserv1" target="_blank" rel="noreferrer" className="menu-item">
+                  <Phone size={18} /> Exotel Dashboard
+                </a>
+              </li>
+              <li>
+                <a href="https://eu1.make.com/organization/7622610/dashboard" target="_blank" rel="noreferrer" className="menu-item">
+                  <Workflow size={18} /> Make.com
+                </a>
+              </li>
+              <li>
+                <a href="https://connect.pabbly.com/webhook-listener/webhook/IjU3NjIwNTY0MDYzMDA0M2Q1MjY4NTUzNCI_3D_pc/IjU3NjcwNTZlMDYzMDA0MzU1MjZmNTUzMjUxMzQi_pc" target="_blank" rel="noreferrer" className="menu-item">
+                  <LinkIcon size={18} /> Pabbly Connect
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div>

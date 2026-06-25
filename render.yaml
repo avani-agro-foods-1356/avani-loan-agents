@@ -1,0 +1,83 @@
+services:
+  - type: web
+    name: avani-loan-agents
+    env: node
+    region: frankfurt # You can change this to your preferred region (e.g., oregon, ohio)
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      # Basic Next.js configuration
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        sync: false # Set this to your Render URL later (e.g., https://avani-loan-agents.onrender.com)
+
+      # VAPI AI Configuration
+      - key: VAPI_API_KEY
+        sync: false
+      - key: VAPI_API_URL
+        value: https://api.vapi.ai
+      - key: VAPI_ASSISTANT_ID
+        sync: false
+      - key: VAPI_PHONE_NUMBER
+        sync: false
+
+      # Twilio Configuration
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: TWILIO_WHATSAPP_NUMBER
+        sync: false
+
+      # Google Sheets / Apps Script URL
+      - key: GOOGLE_SHEET_APP_SCRIPT_URL
+        sync: false
+
+      # HubSpot Configuration
+      - key: HUBSPOT_PORTAL_ID
+        sync: false
+      - key: HUBSPOT_FORM_ID
+        sync: false
+
+      # Make.com Webhook URL
+      - key: MAKE_WEBHOOK_URL
+        sync: false
+
+      # Pabbly Hooks
+      - key: PABBLY_HOOK_URL
+        sync: false
+      - key: PABBLY_CONNECT_URL
+        sync: false
+
+      # Pickyassist Webhook
+      - key: PICKYASSIST_WEBHOOK_URL
+        sync: false
+
+      # Google Gemini API Configuration
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Business Details
+      - key: BUSINESS_NAME
+        value: "AVANI LOAN SERVICE"
+      - key: BUSINESS_ADDRESS
+        value: "RAJIV GANDHI CHAUK, OPP BANK OF BARODA, ABOVE MONGINIOUS CAKE SHOP, AUSA ROAD, LATUR-413512"
+      - key: BUSINESS_EMAIL
+        value: "ENQUIRY@AVANIFINSERV.COM"
+      - key: BUSINESS_WEBSITE
+        value: "https://avanifinserv.com/"
+
+      # Vite config exports (If used by your frontend)
+      - key: VITE_MAKE_WEBHOOK_URL
+        sync: false
+      - key: VITE_BACKEND_URL
+        sync: false
+      - key: VITE_HUBSPOT_PORTAL_ID
+        sync: false
+      - key: VITE_HUBSPOT_FORM_ID
+        sync: false
