@@ -4,12 +4,10 @@ services:
     env: node
     plan: free
     region: frankfurt # You can change this to your preferred region (e.g., oregon, ohio)
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       # Basic Next.js configuration
-      - key: NODE_ENV
-        value: production
       - key: PORT
         value: 10000
       - key: FRONTEND_URL
