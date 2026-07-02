@@ -1,0 +1,28 @@
+# Walkthrough - GitHub & Vercel Deployment
+
+We have successfully published the **Avani Loan Agents** project to GitHub and deployed it to production on Vercel.
+
+---
+
+## 🛠️ Summary of Actions
+
+### 1. Repository Setup & Protection
+* **Git Ignore (`.gitignore`)**: Created a standard Next.js `.gitignore` file to ensure local databases (`database.db`), local secrets (`.env.local`), and build artifacts are kept secure and never pushed publicly.
+* **Initial Commit**: Initialized git and committed the project files.
+* **GitHub Push**: Created a new public repository and pushed the code to:
+  🔗 [GitHub Repository](https://github.com/avaniagrofoods/avani-loan-agents)
+
+### 2. Next.js Upgrade & Vercel Deploy Gate Resolution
+* **The Issue**: Vercel rejected the initial build command, citing a vulnerability check failure on `next@15.1.0`.
+* **The Fix**: Upgraded Next.js to the latest stable version (`16.2.9`), which cleared the Vercel security gate.
+* **Production Deployment**: Linked the project and successfully deployed it to Vercel production.
+  🔗 [Live Production URL](https://avani-loan-agents.vercel.app)
+
+---
+
+## 🧪 Verification Evidence
+
+### Live Vercel Verification Recording
+The web recording below shows the browser successfully loading the live production deployment on Vercel at `https://avani-loan-agents.vercel.app/`:
+
+![Verification Live Web Recording](file:///C:/Users/ALPHA-1/.gemini/antigravity-ide/brain/432c6a54-57e7-442a-8bcc-4e005a0ec28d/verify_vercel_live_1782294219605.webp)
