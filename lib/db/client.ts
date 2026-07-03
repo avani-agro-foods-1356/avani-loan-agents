@@ -1,253 +1,187 @@
-import fs from 'fs';
-import path from 'path';
+import { PrismaClient, Contact, LeadStatus } from '@prisma/client';
 
 export interface Lead {
-  id?: number;
+  id?: string;
   name: string;
-  email?: string;
+  email?: string | null;
   phone: string;
   loan_type: string;
   loan_amount: number;
   monthly_income: number;
   employment_type: string;
-  eligibility_status: 'Qualified' | 'Needs Review' | 'Disqualified';
+  eligibility_status: string; // was 'Qualified' | 'Needs Review' | 'Disqualified'
   eligibility_reason: string;
-  source: 'Web Chat' | 'Voice Call' | 'WhatsApp';
-  call_sid?: string;
-  transcript?: string;
-  recording_url?: string;
-  hubspot_synced: number; // 0 or 1
-  sheets_synced: number;   // 0 or 1
-  make_synced: number;     // 0 or 1
-  pabbly_synced: number;   // 0 or 1
-  pickyassist_synced: number; // 0 or 1
-  employment_history?: string;
+  source: string; // was 'Web Chat' | 'Voice Call' | 'WhatsApp'
+  call_sid?: string | null;
+  transcript?: string | null;
+  recording_url?: string | null;
+  hubspot_synced: number;
+  sheets_synced: number;
+  make_synced: number;
+  pabbly_synced: number;
+  pickyassist_synced: number;
+  employment_history?: string | null;
   created_at?: string;
 }
 
-const JSON_DB_PATH = path.join(process.cwd(), 'db.json');
+const prisma = new PrismaClient();
+// Hardcoded workspaceId for now, assuming there's only one workspace for testing, or we fetch the first one.
+let defaultWorkspaceId: string | null = null;
 
-// Memory DB fallback in case SQLite fails
-let jsonDbMemory: Lead[] = [];
-
-function loadJsonDb() {
-  try {
-    if (fs.existsSync(JSON_DB_PATH)) {
-      const data = fs.readFileSync(JSON_DB_PATH, 'utf-8');
-      jsonDbMemory = JSON.parse(data);
-    } else {
-      jsonDbMemory = [];
-      fs.writeFileSync(JSON_DB_PATH, JSON.stringify([]), 'utf-8');
-    }
-  } catch (err) {
-    console.error("Failed to load JSON database, using in-memory only", err);
-    jsonDbMemory = [];
+async function getWorkspaceId() {
+  if (defaultWorkspaceId) return defaultWorkspaceId;
+  const workspace = await prisma.workspace.findFirst();
+  if (workspace) {
+    defaultWorkspaceId = workspace.id;
+    return defaultWorkspaceId;
   }
+  // If no workspace exists, create a default one
+  const newWorkspace = await prisma.workspace.create({
+    data: { name: "Avani Loan Services" }
+  });
+  defaultWorkspaceId = newWorkspace.id;
+  return defaultWorkspaceId;
 }
 
-function saveJsonDb() {
-  try {
-    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(jsonDbMemory, null, 2), 'utf-8');
-  } catch (err) {
-    console.error("Failed to save JSON database", err);
-  }
+function mapContactToLead(contact: Contact): Lead {
+  // Map Prisma Contact to Agent Lead
+  return {
+    id: contact.id,
+    name: contact.name || '',
+    email: contact.email,
+    phone: contact.phone,
+    loan_type: contact.loanType || '',
+    loan_amount: contact.loanAmount || 0,
+    monthly_income: contact.income || 0,
+    employment_type: contact.employmentType || '',
+    eligibility_status: contact.status,
+    eligibility_reason: contact.eligibilityReason || '',
+    source: contact.source || '',
+    call_sid: contact.callSid,
+    transcript: contact.transcript,
+    recording_url: contact.recordingUrl,
+    hubspot_synced: contact.hubspotSynced || 0,
+    sheets_synced: contact.sheetsSynced || 0,
+    make_synced: contact.makeSynced || 0,
+    pabbly_synced: contact.pabblySynced || 0,
+    pickyassist_synced: contact.pickyassistSynced || 0,
+    employment_history: contact.employmentHistory,
+    created_at: contact.createdAt.toISOString(),
+  };
 }
 
-// Check database mode. We can use SQLite as default.
-let dbInstance: any = null;
-let dbMode: 'sqlite' | 'json' = 'json';
+function mapStatusToEnum(status: string): LeadStatus {
+  if (status === 'Qualified') return LeadStatus.QUALIFIED;
+  if (status === 'Needs Review') return LeadStatus.ELIGIBILITY_REVIEW;
+  if (status === 'Disqualified') return LeadStatus.NEW_LEAD; // or some other status
+  
+  // Try to match exact enum
+  const validStatuses = Object.values(LeadStatus);
+  if (validStatuses.includes(status as LeadStatus)) {
+    return status as LeadStatus;
+  }
+  
+  return LeadStatus.NEW_LEAD;
+}
 
-export async function getDb() {
-  if (dbInstance) return { db: dbInstance, mode: dbMode };
+export async function saveLead(lead: Lead): Promise<string> {
+  const workspaceId = await getWorkspaceId();
+  
+  // Check if lead with phone already exists
+  const existing = await prisma.contact.findUnique({
+    where: { phone: lead.phone }
+  });
 
-  try {
-    // Dynamically require sqlite and sqlite3 to avoid compilation crash on windows import checks
-    const sqlite = require('sqlite');
-    const sqlite3 = require('sqlite3');
-
-    const dbPath = path.join(process.cwd(), 'database.db');
-    dbInstance = await sqlite.open({
-      filename: dbPath,
-      driver: sqlite3.Database
-    });
-
-    // Create table if not exists
-    await dbInstance.exec(`
-      CREATE TABLE IF NOT EXISTS leads (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT,
-        phone TEXT NOT NULL,
-        loan_type TEXT NOT NULL,
-        loan_amount REAL NOT NULL,
-        monthly_income REAL NOT NULL,
-        employment_type TEXT NOT NULL,
-        eligibility_status TEXT NOT NULL,
-        eligibility_reason TEXT,
-        source TEXT NOT NULL,
-        call_sid TEXT,
-        transcript TEXT,
-        recording_url TEXT,
-        hubspot_synced INTEGER DEFAULT 0,
-        sheets_synced INTEGER DEFAULT 0,
-        make_synced INTEGER DEFAULT 0,
-        pabbly_synced INTEGER DEFAULT 0,
-        pickyassist_synced INTEGER DEFAULT 0,
-        employment_history TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    dbMode = 'sqlite';
-    console.log("Database initialized in SQLite mode.");
-  } catch (error) {
-    console.warn("Could not load SQLite, falling back to JSON database file.", error);
-    loadJsonDb();
-    dbMode = 'json';
-    dbInstance = {
-      // Mock SQLite operations using jsonDbMemory
-      all: async (sql: string, params?: any[]) => {
-        return [...jsonDbMemory].reverse(); // return latest leads first
-      },
-      run: async (sql: string, params: any[]) => {
-        if (sql.includes('INSERT INTO leads')) {
-          const lead: Lead = {
-            id: jsonDbMemory.length + 1,
-            name: params[0],
-            email: params[1],
-            phone: params[2],
-            loan_type: params[3],
-            loan_amount: params[4],
-            monthly_income: params[5],
-            employment_type: params[6],
-            eligibility_status: params[7],
-            eligibility_reason: params[8],
-            source: params[9],
-            call_sid: params[10],
-            transcript: params[11],
-            recording_url: params[12],
-            hubspot_synced: params[13] || 0,
-            sheets_synced: params[14] || 0,
-            make_synced: params[15] || 0,
-            pabbly_synced: params[16] || 0,
-            pickyassist_synced: params[17] || 0,
-            employment_history: params[18] || null,
-            created_at: new Date().toISOString()
-          };
-          jsonDbMemory.push(lead);
-          saveJsonDb();
-          return { lastID: lead.id };
-        }
-        return { lastID: 0 };
-      },
-      exec: async (sql: string) => {
-        return;
+  if (existing) {
+    // Update
+    const updated = await prisma.contact.update({
+      where: { phone: lead.phone },
+      data: {
+        name: lead.name,
+        email: lead.email,
+        loanType: lead.loan_type,
+        loanAmount: lead.loan_amount,
+        income: lead.monthly_income,
+        employmentType: lead.employment_type,
+        status: mapStatusToEnum(lead.eligibility_status),
+        eligibilityReason: lead.eligibility_reason,
+        source: lead.source,
+        callSid: lead.call_sid,
+        transcript: lead.transcript,
+        recordingUrl: lead.recording_url,
+        hubspotSynced: lead.hubspot_synced,
+        sheetsSynced: lead.sheets_synced,
+        makeSynced: lead.make_synced,
+        pabblySynced: lead.pabbly_synced,
+        pickyassistSynced: lead.pickyassist_synced,
+        employmentHistory: lead.employment_history,
       }
-    };
-  }
-
-  if (dbInstance) {
-    try {
-      const { seedDatabase } = require('./seed');
-      seedDatabase().catch((err: any) => console.error("Database seeding failed", err));
-    } catch (e) {
-      console.warn("Could not load seed function", e);
-    }
-  }
-
-  return { db: dbInstance, mode: dbMode };
-}
-
-export async function saveLead(lead: Lead): Promise<number> {
-  const { db, mode } = await getDb();
-  if (mode === 'sqlite') {
-    const result = await db.run(
-      `INSERT INTO leads (
-        name, email, phone, loan_type, loan_amount, monthly_income, 
-        employment_type, eligibility_status, eligibility_reason, source, 
-        call_sid, transcript, recording_url, hubspot_synced, sheets_synced, 
-        make_synced, pabbly_synced, pickyassist_synced, employment_history
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        lead.name,
-        lead.email || null,
-        lead.phone,
-        lead.loan_type,
-        lead.loan_amount,
-        lead.monthly_income,
-        lead.employment_type,
-        lead.eligibility_status,
-        lead.eligibility_reason,
-        lead.source,
-        lead.call_sid || null,
-        lead.transcript || null,
-        lead.recording_url || null,
-        lead.hubspot_synced,
-        lead.sheets_synced,
-        lead.make_synced,
-        lead.pabbly_synced,
-        lead.pickyassist_synced,
-        lead.employment_history || null
-      ]
-    );
-    return result.lastID;
+    });
+    return updated.id;
   } else {
-    const result = await db.run('INSERT INTO leads', [
-      lead.name,
-      lead.email || null,
-      lead.phone,
-      lead.loan_type,
-      lead.loan_amount,
-      lead.monthly_income,
-      lead.employment_type,
-      lead.eligibility_status,
-      lead.eligibility_reason,
-      lead.source,
-      lead.call_sid || null,
-      lead.transcript || null,
-      lead.recording_url || null,
-      lead.hubspot_synced,
-      lead.sheets_synced,
-      lead.make_synced,
-      lead.pabbly_synced,
-      lead.pickyassist_synced,
-      lead.employment_history || null
-    ]);
-    return result.lastID;
+    // Create
+    const created = await prisma.contact.create({
+      data: {
+        workspaceId,
+        phone: lead.phone,
+        name: lead.name,
+        email: lead.email,
+        loanType: lead.loan_type,
+        loanAmount: lead.loan_amount,
+        income: lead.monthly_income,
+        employmentType: lead.employment_type,
+        status: mapStatusToEnum(lead.eligibility_status),
+        eligibilityReason: lead.eligibility_reason,
+        source: lead.source,
+        callSid: lead.call_sid,
+        transcript: lead.transcript,
+        recordingUrl: lead.recording_url,
+        hubspotSynced: lead.hubspot_synced,
+        sheetsSynced: lead.sheets_synced,
+        makeSynced: lead.make_synced,
+        pabblySynced: lead.pabbly_synced,
+        pickyassistSynced: lead.pickyassist_synced,
+        employmentHistory: lead.employment_history,
+      }
+    });
+    return created.id;
   }
 }
 
 export async function getAllLeads(): Promise<Lead[]> {
-  const { db, mode } = await getDb();
-  if (mode === 'sqlite') {
-    return await db.all("SELECT * FROM leads ORDER BY id DESC");
-  } else {
-    return await db.all("");
-  }
+  const contacts = await prisma.contact.findMany({
+    orderBy: { createdAt: 'desc' }
+  });
+  return contacts.map(mapContactToLead);
 }
 
 export async function updateLeadSyncStatus(
-  id: number,
+  id: string,
   syncType: 'hubspot' | 'sheets' | 'make' | 'pabbly' | 'pickyassist',
   status: 0 | 1
 ) {
-  const { db, mode } = await getDb();
   const fieldMap = {
-    hubspot: 'hubspot_synced',
-    sheets: 'sheets_synced',
-    make: 'make_synced',
-    pabbly: 'pabbly_synced',
-    pickyassist: 'pickyassist_synced'
+    hubspot: 'hubspotSynced',
+    sheets: 'sheetsSynced',
+    make: 'makeSynced',
+    pabbly: 'pabblySynced',
+    pickyassist: 'pickyassistSynced'
   };
 
   const field = fieldMap[syncType];
 
-  if (mode === 'sqlite') {
-    await db.run(`UPDATE leads SET ${field} = ? WHERE id = ?`, [status, id]);
-  } else {
-    const lead = jsonDbMemory.find(l => l.id === id);
-    if (lead) {
-      (lead as any)[field] = status;
-      saveJsonDb();
+  await prisma.contact.update({
+    where: { id },
+    data: {
+      [field]: status
     }
+  });
+}
+
+// Ensure Prisma disconnects gracefully on exit (useful in dev)
+if (process.env.NODE_ENV !== 'production') {
+  const globalAny: any = global;
+  if (!globalAny.prisma) {
+    globalAny.prisma = prisma;
   }
 }

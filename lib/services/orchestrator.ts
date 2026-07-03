@@ -13,7 +13,7 @@ export interface SyncSummary {
   twilio: { success: boolean; message: string };
 }
 
-export async function orchestrateLeadSync(leadId: number): Promise<SyncSummary | null> {
+export async function orchestrateLeadSync(leadId: string): Promise<SyncSummary | null> {
   // Retrieve the lead from the database
   const leads = await getAllLeads();
   const lead = leads.find(l => l.id === leadId);
