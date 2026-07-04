@@ -81,9 +81,11 @@ export async function POST(req: Request) {
             loanAmount: z.number().describe('Loan amount in INR (₹)'),
             monthlyIncome: z.number().describe('Monthly income in INR (₹)'),
             employmentType: z.string().describe('Employment type (e.g. Salaried, Self-Employed, Business Owner)'),
-            employmentHistory: z.string().optional().describe('Employment history of the applicant (e.g. current company, title, years of experience)')
+            employmentHistory: z.string().optional().describe('Employment history of the applicant (e.g. current company, title, years of experience)'),
+            leadScoreTag: z.string().describe('The calculated lead score tag based on the logic (e.g. PL-HOT, BL-WARM)'),
+            crmStage: z.string().describe('The current CRM pipeline stage (e.g. QUALIFIED or DOCUMENTS_PENDING)')
           }),
-          execute: async ({ name, phone, email, loanType, loanAmount, monthlyIncome, employmentType, employmentHistory }) => {
+          execute: async ({ name, phone, email, loanType, loanAmount, monthlyIncome, employmentType, employmentHistory, leadScoreTag, crmStage }) => {
             // First evaluate eligibility
             const evalResult = evaluateEligibility(loanType, loanAmount, monthlyIncome, employmentType);
 
@@ -96,10 +98,11 @@ export async function POST(req: Request) {
               loan_amount: loanAmount,
               monthly_income: monthlyIncome,
               employment_type: employmentType,
-              eligibility_status: evalResult.status,
+              eligibility_status: crmStage, // Use the stage determined by the AI
               eligibility_reason: evalResult.reason,
               source: 'Web Chat' as const,
               employment_history: employmentHistory || undefined,
+              lead_score_tag: leadScoreTag,
               hubspot_synced: 0,
               sheets_synced: 0,
               make_synced: 0,

@@ -21,6 +21,7 @@ export interface Lead {
   pabbly_synced: number;
   pickyassist_synced: number;
   employment_history?: string | null;
+  lead_score_tag?: string | null;
   created_at?: string;
 }
 
@@ -72,7 +73,7 @@ function mapContactToLead(contact: Contact): Lead {
 
 function mapStatusToEnum(status: string): LeadStatus {
   if (status === 'Qualified') return LeadStatus.QUALIFIED;
-  if (status === 'Needs Review') return LeadStatus.ELIGIBILITY_REVIEW;
+  if (status === 'Needs Review') return LeadStatus.ELIGIBILITY_CHECK;
   if (status === 'Disqualified') return LeadStatus.NEW_LEAD; // or some other status
   
   // Try to match exact enum
@@ -87,6 +88,20 @@ function mapStatusToEnum(status: string): LeadStatus {
 export async function saveLead(lead: Lead): Promise<string> {
   const workspaceId = await getWorkspaceId();
   
+  // Handle Tags
+  let tagConnect: any = undefined;
+  if (lead.lead_score_tag) {
+    let tag = await prisma.tag.findFirst({
+      where: { name: lead.lead_score_tag, workspaceId }
+    });
+    if (!tag) {
+      tag = await prisma.tag.create({
+        data: { name: lead.lead_score_tag, workspaceId, color: "#ef4444" } // Red default for HOT/etc
+      });
+    }
+    tagConnect = { connect: [{ id: tag.id }] };
+  }
+
   // Check if lead with phone already exists
   const existing = await prisma.contact.findUnique({
     where: { phone: lead.phone }
@@ -115,6 +130,7 @@ export async function saveLead(lead: Lead): Promise<string> {
         pabblySynced: lead.pabbly_synced,
         pickyassistSynced: lead.pickyassist_synced,
         employmentHistory: lead.employment_history,
+        ...(tagConnect ? { tags: tagConnect } : {})
       }
     });
     return updated.id;
@@ -142,6 +158,7 @@ export async function saveLead(lead: Lead): Promise<string> {
         pabblySynced: lead.pabbly_synced,
         pickyassistSynced: lead.pickyassist_synced,
         employmentHistory: lead.employment_history,
+        ...(tagConnect ? { tags: tagConnect } : {})
       }
     });
     return created.id;
