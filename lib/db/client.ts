@@ -73,7 +73,7 @@ function mapContactToLead(contact: Contact): Lead {
 
 function mapStatusToEnum(status: string): LeadStatus {
   if (status === 'Qualified') return LeadStatus.QUALIFIED;
-  if (status === 'Needs Review') return LeadStatus.ELIGIBILITY_CHECK;
+  if (status === 'Needs Review') return LeadStatus.ELIGIBILITY_REVIEW;
   if (status === 'Disqualified') return LeadStatus.NEW_LEAD; // or some other status
   
   // Try to match exact enum
