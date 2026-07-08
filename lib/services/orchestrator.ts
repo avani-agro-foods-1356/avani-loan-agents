@@ -2,7 +2,7 @@ import { getAllLeads, Lead, updateLeadSyncStatus } from '../db/client';
 import { syncLeadToHubSpot } from './hubspot';
 import { syncLeadToGoogleSheets } from './sheets';
 import { syncLeadToMake, syncLeadToPabbly } from './make-pabbly';
-import { sendWhatsAppPickyassist, sendWhatsAppTwilio } from './whatsapp';
+import { sendWhatsAppPickyassist, sendWhatsAppTwilio, sendWhatsAppMeta } from './whatsapp';
 
 export interface SyncSummary {
   hubspot: { success: boolean; message: string };
@@ -11,6 +11,7 @@ export interface SyncSummary {
   pabbly: { success: boolean; message: string };
   pickyassist: { success: boolean; message: string };
   twilio: { success: boolean; message: string };
+  meta_wa: { success: boolean; message: string };
 }
 
 export async function orchestrateLeadSync(leadId: string): Promise<SyncSummary | null> {
@@ -55,7 +56,11 @@ export async function orchestrateLeadSync(leadId: string): Promise<SyncSummary |
     await updateLeadSyncStatus(leadId, 'pickyassist', 1);
   }
 
+  // Keep Twilio as fallback or parallel if they still want it, but also trigger Meta
   const twilioResult = await sendWhatsAppTwilio(lead);
+  
+  // 6. Send Meta WhatsApp (Official)
+  const metaWaResult = await sendWhatsAppMeta(lead);
 
   return {
     hubspot: hubspotResult,
@@ -63,6 +68,7 @@ export async function orchestrateLeadSync(leadId: string): Promise<SyncSummary |
     make: makeResult,
     pabbly: pabblyResult,
     pickyassist: pickyassistResult,
-    twilio: twilioResult
+    twilio: twilioResult,
+    meta_wa: metaWaResult
   };
 }

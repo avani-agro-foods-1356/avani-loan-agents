@@ -116,3 +116,95 @@ Email: enquiry@avanifinserv.com`;
     return { success: false, message: error.message || "Network error" };
   }
 }
+
+export async function sendWhatsAppMeta(lead: Lead): Promise<SyncResult> {
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  if (!token || !phoneId) {
+    console.warn("Meta WhatsApp credentials missing. Skipping Meta WhatsApp notification.");
+    return { success: true, message: "Simulated: Meta WhatsApp credentials missing." };
+  }
+
+  const endpoint = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+
+  // Standardize phone format for Meta API (no '+', just country code + number)
+  let toPhone = lead.phone.trim();
+  if (toPhone.startsWith('+')) {
+    toPhone = toPhone.substring(1);
+  } else if (toPhone.length === 10) {
+    toPhone = '91' + toPhone; // default to India
+  }
+  
+  // Determine template based on loan type
+  let templateName = "personal_loan_application_status"; // Default
+  const lType = lead.loan_type?.toLowerCase() || "";
+  
+  if (lType.includes("business")) templateName = "business_loan_status_update";
+  else if (lType.includes("doctor")) templateName = "doctor_loan_application_update";
+  else if (lType.includes("ca ") || lType.includes("chartered")) templateName = "ca_loan_application_update";
+  else if (lType.includes("home")) templateName = "home_loan_status_update";
+  else if (lType.includes("mortgage")) templateName = "mortgage_loan_status_update";
+  else if (lType.includes("education") && lType.includes("global")) templateName = "education_loan_global_update";
+  else if (lType.includes("education")) templateName = "education_loan_india_update";
+  else if (lType.includes("school")) templateName = "school_funding_application_update";
+  else if (lType.includes("college")) templateName = "college_funding_application_update";
+
+  const refNumber = `REF-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Define the Meta template payload
+  const payload = {
+    messaging_product: "whatsapp",
+    to: toPhone,
+    type: "template",
+    template: {
+      name: templateName,
+      language: {
+        code: "en" 
+      },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: lead.name || "Customer"
+            },
+            {
+              type: "text",
+              text: refNumber
+            },
+            {
+              type: "text",
+              text: "Under Review"
+            }
+          ]
+        }
+      ]
+    }
+  };
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`Meta WhatsApp sent successfully to ${toPhone}. Template: ${templateName}. Message ID: ${data.messages?.[0]?.id}`);
+      return { success: true, message: `Meta WhatsApp sent. ID: ${data.messages?.[0]?.id}` };
+    } else {
+      const errorText = await response.text();
+      console.error(`Meta WhatsApp failed: Status ${response.status}. Details: ${errorText}`);
+      return { success: false, message: `Meta API returned status ${response.status}` };
+    }
+  } catch (error: any) {
+    console.error("Meta WhatsApp sync network error:", error);
+    return { success: false, message: error.message || "Network error" };
+  }
+}
