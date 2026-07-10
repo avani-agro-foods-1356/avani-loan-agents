@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("Incoming lead received from CRM:", JSON.stringify(body, null, 2));
 
-    const { name, phone, loanType, requestedAmount, callSummary } = body;
+    const { name, phone, loanType, requestedAmount, callSummary, event_type } = body;
 
     if (!phone) {
       return NextResponse.json({ success: false, error: "Phone number is required" }, { status: 400 });
@@ -21,8 +21,8 @@ export async function POST(request: Request) {
       loan_amount: Number(requestedAmount) || 0,
       monthly_income: 0,
       employment_type: "Unknown",
-      eligibility_status: "Qualified", // Assuming interested
-      eligibility_reason: "Interested from Voice Call",
+      eligibility_status: event_type === 'missed_call' ? "Missed Call" : "Qualified",
+      eligibility_reason: event_type === 'missed_call' ? "Unanswered Voice Call" : "Interested from Voice Call",
       source: 'Voice Call',
       call_sid: `ai-crm-${Date.now()}`,
       transcript: callSummary || "",
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     console.log(`Saved incoming lead ID: ${leadId}. Starting sync...`);
 
     // Orchestrate integrations sync (including Meta WhatsApp)
-    const syncSummary = await orchestrateLeadSync(leadId);
+    const syncSummary = await orchestrateLeadSync(leadId, event_type);
 
     return NextResponse.json({
       success: true,

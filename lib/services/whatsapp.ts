@@ -117,7 +117,7 @@ Email: enquiry@avanifinserv.com`;
   }
 }
 
-export async function sendWhatsAppMeta(lead: Lead): Promise<SyncResult> {
+export async function sendWhatsAppMeta(lead: Lead, event_type: string = 'interested'): Promise<SyncResult> {
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
@@ -136,21 +136,47 @@ export async function sendWhatsAppMeta(lead: Lead): Promise<SyncResult> {
     toPhone = '91' + toPhone; // default to India
   }
   
-  // Determine template based on loan type
+  // Determine template based on event_type and loan type
   let templateName = "personal_loan_application_status"; // Default
-  const lType = lead.loan_type?.toLowerCase() || "";
-  
-  if (lType.includes("business")) templateName = "business_loan_status_update";
-  else if (lType.includes("doctor")) templateName = "doctor_loan_application_update";
-  else if (lType.includes("ca ") || lType.includes("chartered")) templateName = "ca_loan_application_update";
-  else if (lType.includes("home")) templateName = "home_loan_status_update";
-  else if (lType.includes("mortgage")) templateName = "mortgage_loan_status_update";
-  else if (lType.includes("education") && lType.includes("global")) templateName = "education_loan_global_update";
-  else if (lType.includes("education")) templateName = "education_loan_india_update";
-  else if (lType.includes("school")) templateName = "school_funding_application_update";
-  else if (lType.includes("college")) templateName = "college_funding_application_update";
-
+  let components: any[] = [];
   const refNumber = `REF-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  if (event_type === 'missed_call') {
+    // Use the user's requested template for missed calls
+    templateName = "loan_consultation_offer";
+    components = [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: lead.name || "Customer" }
+        ]
+      }
+    ];
+  } else {
+    // Normal interested flow
+    const lType = lead.loan_type?.toLowerCase() || "";
+    
+    if (lType.includes("business")) templateName = "business_loan_status_update";
+    else if (lType.includes("doctor")) templateName = "doctor_loan_application_update";
+    else if (lType.includes("ca ") || lType.includes("chartered")) templateName = "ca_loan_application_update";
+    else if (lType.includes("home")) templateName = "home_loan_status_update";
+    else if (lType.includes("mortgage")) templateName = "mortgage_loan_status_update";
+    else if (lType.includes("education") && lType.includes("global")) templateName = "education_loan_global_update";
+    else if (lType.includes("education")) templateName = "education_loan_india_update";
+    else if (lType.includes("school")) templateName = "school_funding_application_update";
+    else if (lType.includes("college")) templateName = "college_funding_application_update";
+
+    components = [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: lead.name || "Customer" },
+          { type: "text", text: refNumber },
+          { type: "text", text: "Under Review" }
+        ]
+      }
+    ];
+  }
 
   // Define the Meta template payload
   const payload = {
@@ -162,25 +188,7 @@ export async function sendWhatsAppMeta(lead: Lead): Promise<SyncResult> {
       language: {
         code: "en" 
       },
-      components: [
-        {
-          type: "body",
-          parameters: [
-            {
-              type: "text",
-              text: lead.name || "Customer"
-            },
-            {
-              type: "text",
-              text: refNumber
-            },
-            {
-              type: "text",
-              text: "Under Review"
-            }
-          ]
-        }
-      ]
+      components: components
     }
   };
 

@@ -14,7 +14,7 @@ export interface SyncSummary {
   meta_wa: { success: boolean; message: string };
 }
 
-export async function orchestrateLeadSync(leadId: string): Promise<SyncSummary | null> {
+export async function orchestrateLeadSync(leadId: string, event_type: string = 'interested_lead'): Promise<SyncSummary | null> {
   // Retrieve the lead from the database
   const leads = await getAllLeads();
   const lead = leads.find(l => l.id === leadId);
@@ -24,8 +24,23 @@ export async function orchestrateLeadSync(leadId: string): Promise<SyncSummary |
     return null;
   }
 
-  console.log(`Starting orchestrator sync for lead: ${lead.name} (ID: ${leadId})`);
+  console.log(`Starting orchestrator sync for lead: ${lead.name} (ID: ${leadId}), Event: ${event_type}`);
 
+  if (event_type === 'missed_call') {
+    // Only send the WhatsApp Meta Missed Call template
+    const metaWaResult = await sendWhatsAppMeta(lead, 'missed_call');
+    return {
+      hubspot: { success: false, message: 'Skipped' },
+      sheets: { success: false, message: 'Skipped' },
+      make: { success: false, message: 'Skipped' },
+      pabbly: { success: false, message: 'Skipped' },
+      pickyassist: { success: false, message: 'Skipped' },
+      twilio: { success: false, message: 'Skipped' },
+      meta_wa: metaWaResult
+    };
+  }
+
+  // Normal Flow for Interested Leads
   // 1. Sync to HubSpot
   const hubspotResult = await syncLeadToHubSpot(lead);
   if (hubspotResult.success) {
@@ -60,7 +75,7 @@ export async function orchestrateLeadSync(leadId: string): Promise<SyncSummary |
   const twilioResult = await sendWhatsAppTwilio(lead);
   
   // 6. Send Meta WhatsApp (Official)
-  const metaWaResult = await sendWhatsAppMeta(lead);
+  const metaWaResult = await sendWhatsAppMeta(lead, 'interested');
 
   return {
     hubspot: hubspotResult,
