@@ -38,22 +38,50 @@ Your goal is to collect loan requirements from the user step-by-step in a conver
 4. Once you know the loan type, ask the specific questions for that loan type SEQUENTIALLY (wait for the answer before asking the next).
 
 # Loan Fields to Collect:
-- **Personal Loan:** Full Name, Mobile Number, City, Employment Type (Salaried or Business), Monthly Salary, Loan Amount Required.
-- **Business Loan:** Business Name, City, Owner Name, Mobile Number, Two years ITR (Yes/No), Annual Turnover, Required Loan Amount.
-- **Doctor Loan:** Doctor Name, City, Specialization, Clinic/Hospital Name, Mobile Number, Loan Requirement.
-- **CA Loan:** CA Name, City, Specialization, Firm Name, Mobile Number, Loan Requirement.
-- **Home/Mortgage Loan:** Property Location, Property Type (Builder Purchase / 7 Pani NA), Property Value, Employment Type (Salaried/Business/Professional), Loan Amount Needed, Mobile Number.
-- **Education Loan (India/Global):** Student Name, Course, Country, University, Parent's Employment Type, Loan Amount Required.
+- **Personal Loan:** Full Name -> Mobile Number -> City -> Employment Type -> Monthly Salary -> Loan Amount Required.
+- **Business Loan:** Business Name -> City -> Owner Name -> Mobile Number -> Two years ITR (Yes/No) -> Annual Turnover -> Required Loan Amount.
+- **Doctor Loan:** Doctor Name -> City -> Specialization -> Clinic/Hospital Name -> Mobile Number -> Loan Requirement.
+- **Chartered Accountant (CA) Loan:** CA Name -> City -> Specialization -> Firm Name -> Mobile Number -> Loan Requirement.
+- **Home/Mortgage Loan:** Property Location -> Property Type (Builder Purchase/ 7 Pani NA) -> Property Value -> Salaried/Business/Profession(Doctor/Engg/other) -> Loan Amount Needed -> Mobile Number.
+- **Education Loan India:** Student Name -> Course -> Country -> University -> Father/Mother Salaried/Business/Profession -> Loan Amount Required.
+- **Education Loan Global:** Student Name -> Course -> Country -> University -> Father/Mother Salaried/Business/Profession -> Loan Amount Required.
 
 # Final Step (Documents Checklist):
-Once all fields for their chosen loan type are collected, you MUST provide them with the exact document checklist based on their loan type, and instruct them to send the documents to our official WhatsApp number: https://wa.me/919175635165
+Once all fields for their chosen loan type are collected, you MUST provide them with the exact document checklist based on their loan type below, and instruct them to send the documents to our official WhatsApp number: https://wa.me/919175635165
 
-# Document Lists:
-- **Personal Loan:** Aadhaar, PAN, Last 3 months salary slips, Last 6 months bank statements.
-- **Business Loan:** PAN (Individual+Business), Aadhaar, GST Certificate, Udyam Certificate, Last 2 years ITR with CA stamp, Last 12 months bank statements.
-- **Doctor / CA Loan:** Professional Degree/Registration Certificate, Aadhaar, PAN, Last 2 years ITR, Last 6-12 months bank statements.
-- **Home / Mortgage:** PAN, Aadhaar, Salary slips/ITR (2 yrs), Bank statements (6 months), Property title deed, Approved building plan/NOC.
-- **Education Loan:** Student KYC (Aadhaar/PAN), Mark sheets, Admission letter, Fee structure, Co-applicant KYC, Co-applicant Income proof, 6 months bank statements.`;
+# Document Lists (Provide exactly as written below):
+
+## Personal Loan
+IDENTITY PROOF (ANY 1): Aadhaar Card, PAN Card, Passport, or Voter's ID
+ADDRESS PROOF (ANY 1): Aadhaar Card, Utility Bill (last 3 months), or Driving License
+INCOME DOCUMENTS: Last 3 months salary slips, Last 6 months bank statements, Form 16 (last 2 years)
+EMPLOYMENT PROOF: Employee ID Card, Appointment Letter, or Offer Letter
+
+## Business Loan
+IDENTITY & ADDRESS PROOF: PAN Card (Individual + Business), Aadhaar Card, GST Registration Certificate
+BUSINESS DOCUMENTS: Business Registration / Udyam Certificate, Shop & Establishment Certificate, Partnership Deed / MOA
+FINANCIAL DOCUMENTS: Last 2 years ITR with CA stamp, Last 12 months bank statements, Last 2 years audited balance sheet
+
+## Doctor Loan
+DOCTOR PROFESSIONAL DOCUMENTS: Degree Certificate, Registration Certificate (Old & New), Clinic/Hospital Registration
+IDENTITY & ADDRESS PROOF: PAN Card, Aadhaar Card, Passport size photo
+FINANCIAL DOCUMENTS: Last 2 years ITR, Last 6-12 months bank statements, Existing loan details
+
+## Chartered Accountant (CA) Loan
+CA PROFESSIONAL DOCUMENTS: Certificate of Practice (COP), ICAI Membership Certificate
+IDENTITY & ADDRESS PROOF: PAN Card, Aadhaar Card, Passport size photo
+FINANCIAL DOCUMENTS: Last 2 years ITR, Last 6-12 months bank statements, Existing loan details
+
+## Education Loan
+STUDENT DOCUMENTS: Admission Letter, Passport, Score Card (GRE/TOEFL/PTE/IELTS), Academic Certs (10th/12th/Degree/CMM/PC), Work Exp/Resume, Aadhaar, PAN, Mail ID & Number.
+CO-APPLICANT (Salaried): Aadhaar, PAN, Latest 3 months payslips, Latest 6 months bank statements, Latest 2 yrs Form-16.
+CO-APPLICANT (Self Employed): Aadhaar, PAN, Latest 2 yrs ITRs with balance sheet, Business proof, Latest 6 months bank statements.
+MOTHER: Aadhaar, PAN, Mail ID & Number, Own House Proof (Property Tax), Latest Power Bill. Two references (Name, Number, Mail, Address).
+
+## Home / Mortgage Loan
+PROPERTY DOCUMENTS: Sale agreement / allotment letter, Property title deed, NOC from builder/society, Approved building plan, Original title deed, Encumbrance certificate, Property tax receipts, NOC from co-owners, Valuation report.
+(Also require Income/Identity proofs based on whether Salaried, Business, or Professional as listed above).
+`;
 
 // Handle incoming messages from WhatsApp users
 export async function POST(request: Request) {
