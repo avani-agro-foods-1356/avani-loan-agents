@@ -31,6 +31,8 @@ const google = createGoogleGenerativeAI({
   apiKey: (process.env.GOOGLE_GENERATIVE_AI_API_KEY || '').trim()
 });
 
+const memoryChatHistory = new Map<string, any[]>();
+
 const SYSTEM_PROMPT = `You are the Avani Loan Services AI Agent.
 Your goal is to collect loan requirements from the user step-by-step in a conversational manner.
 
@@ -143,7 +145,12 @@ export async function POST(request: Request) {
           log("Saved to DB successfully");
         } catch (dbError: any) {
           log("DB Error: " + dbError?.message);
-          dbMessages = [{ direction: 'INBOUND', content: incomingText }];
+          if (!memoryChatHistory.has(fromPhone)) {
+            memoryChatHistory.set(fromPhone, []);
+          }
+          const history = memoryChatHistory.get(fromPhone)!;
+          history.push({ direction: 'INBOUND', content: incomingText });
+          dbMessages = [...history];
         }
 
         const aiMessages = dbMessages.map(m => ({
@@ -171,6 +178,11 @@ export async function POST(request: Request) {
             } catch (e) {
               log("Failed to save outbound to DB");
             }
+          } else {
+             const history = memoryChatHistory.get(fromPhone);
+             if (history) {
+                 history.push({ direction: 'OUTBOUND', content: aiResponse });
+             }
           }
 
           const phoneId = value?.metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
