@@ -144,14 +144,7 @@ export async function sendWhatsAppMeta(lead: Lead, event_type: string = 'interes
   if (event_type === 'missed_call' || event_type === 'start_wa_flow') {
     // Use the user's requested template for missed calls and the new auto-flow
     templateName = "loan_consultation_offer";
-    components = [
-      {
-        type: "body",
-        parameters: [
-          { type: "text", text: lead.name || "Customer" }
-        ]
-      }
-    ];
+    components = [];
   } else {
     // Normal interested flow
     const lType = lead.loan_type?.toLowerCase() || "";
