@@ -195,6 +195,30 @@ export async function updateLeadSyncStatus(
   });
 }
 
+export async function saveMessage(contactId: string, direction: 'INBOUND' | 'OUTBOUND', content: string) {
+  return prisma.message.create({
+    data: {
+      contactId,
+      direction,
+      type: 'TEXT',
+      content,
+      status: direction === 'INBOUND' ? 'DELIVERED' : 'SENT'
+    }
+  });
+}
+
+export async function getContactMessages(phone: string) {
+  const contact = await prisma.contact.findUnique({
+    where: { phone },
+    include: {
+      messages: {
+        orderBy: { timestamp: 'asc' }
+      }
+    }
+  });
+  return contact ? contact.messages : [];
+}
+
 // Ensure Prisma disconnects gracefully on exit (useful in dev)
 if (process.env.NODE_ENV !== 'production') {
   const globalAny: any = global;

@@ -24,38 +24,107 @@ export async function GET(request: Request) {
   }
 }
 
+import { saveLead, saveMessage, getContactMessages } from '../../../lib/db/client';
+import { generateText } from 'ai';
+import { google } from '@ai-sdk/google';
+
+const SYSTEM_PROMPT = `You are the Avani Loan Services AI Agent.
+Your goal is to collect loan requirements from the user step-by-step in a conversational manner.
+
+# Rules:
+1. ALWAYS ask ONLY ONE question at a time. Never dump multiple questions at once.
+2. Be polite, professional, and use concise language. Support English, Hindi, and Marathi based on user language.
+3. First, ask what type of loan they need if they haven't specified: Personal, Business, Doctor, CA, Home, or Education.
+4. Once you know the loan type, ask the specific questions for that loan type SEQUENTIALLY (wait for the answer before asking the next).
+
+# Loan Fields to Collect:
+- **Personal Loan:** Full Name, Mobile Number, City, Employment Type (Salaried or Business), Monthly Salary, Loan Amount Required.
+- **Business Loan:** Business Name, City, Owner Name, Mobile Number, Two years ITR (Yes/No), Annual Turnover, Required Loan Amount.
+- **Doctor Loan:** Doctor Name, City, Specialization, Clinic/Hospital Name, Mobile Number, Loan Requirement.
+- **CA Loan:** CA Name, City, Specialization, Firm Name, Mobile Number, Loan Requirement.
+- **Home/Mortgage Loan:** Property Location, Property Type (Builder Purchase / 7 Pani NA), Property Value, Employment Type (Salaried/Business/Professional), Loan Amount Needed, Mobile Number.
+- **Education Loan (India/Global):** Student Name, Course, Country, University, Parent's Employment Type, Loan Amount Required.
+
+# Final Step (Documents Checklist):
+Once all fields for their chosen loan type are collected, you MUST provide them with the exact document checklist based on their loan type, and instruct them to send the documents to our official WhatsApp number: https://wa.me/919175635165
+
+# Document Lists:
+- **Personal Loan:** Aadhaar, PAN, Last 3 months salary slips, Last 6 months bank statements.
+- **Business Loan:** PAN (Individual+Business), Aadhaar, GST Certificate, Udyam Certificate, Last 2 years ITR with CA stamp, Last 12 months bank statements.
+- **Doctor / CA Loan:** Professional Degree/Registration Certificate, Aadhaar, PAN, Last 2 years ITR, Last 6-12 months bank statements.
+- **Home / Mortgage:** PAN, Aadhaar, Salary slips/ITR (2 yrs), Bank statements (6 months), Property title deed, Approved building plan/NOC.
+- **Education Loan:** Student KYC (Aadhaar/PAN), Mark sheets, Admission letter, Fee structure, Co-applicant KYC, Co-applicant Income proof, 6 months bank statements.`;
+
 // Handle incoming messages from WhatsApp users
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Check if it's a WhatsApp message event
     if (body.object === 'whatsapp_business_account') {
       const entry = body.entry?.[0];
       const changes = entry?.changes?.[0];
       const value = changes?.value;
       const messages = value?.messages;
 
-      // If there is an actual message from a customer
       if (messages && messages.length > 0) {
         const message = messages[0];
         const fromPhone = message.from;
         
-        // Extract text if it's a text message or a quick reply
         let incomingText = "";
         if (message.type === 'text') {
-          incomingText = message.text?.body?.toLowerCase() || "";
+          incomingText = message.text?.body || "";
         } else if (message.type === 'button') {
-          incomingText = message.button?.text?.toLowerCase() || "";
+          incomingText = message.button?.text || "";
         } else if (message.type === 'interactive') {
-          incomingText = message.interactive?.button_reply?.title?.toLowerCase() || 
-                         message.interactive?.list_reply?.title?.toLowerCase() || "";
+          incomingText = message.interactive?.button_reply?.title || 
+                         message.interactive?.list_reply?.title || "";
         }
+
+        if (!incomingText) return NextResponse.json({ success: true });
 
         console.log(`Received WhatsApp message from ${fromPhone}: ${incomingText}`);
 
-        // If the customer replied positively (Yes, Ready, Interested, etc)
-        // Even if we don't match keywords, we can just auto-reply to everything for now to guide them to documents
+        // Ensure Lead exists
+        const leadId = await saveLead({
+          name: "WhatsApp User",
+          phone: fromPhone,
+          loan_type: "Unknown",
+          loan_amount: 0,
+          monthly_income: 0,
+          employment_type: "Unknown",
+          eligibility_status: "Engaged via WhatsApp",
+          eligibility_reason: "Chatting with AI",
+          source: "WhatsApp",
+          hubspot_synced: 0,
+          sheets_synced: 0,
+          make_synced: 0,
+          pabbly_synced: 0,
+          pickyassist_synced: 0
+        });
+
+        // Save incoming message
+        await saveMessage(leadId, 'INBOUND', incomingText);
+
+        // Fetch history
+        const dbMessages = await getContactMessages(fromPhone);
+        
+        // Convert to AI SDK format
+        const aiMessages = dbMessages.map(m => ({
+          role: m.direction === 'INBOUND' ? 'user' : 'assistant',
+          content: m.content
+        }));
+
+        // Generate response using Gemini
+        const { text: aiResponse } = await generateText({
+          model: google('gemini-2.5-flash'),
+          system: SYSTEM_PROMPT,
+          messages: aiMessages as any
+        });
+
+        // Save outbound message
+        await saveMessage(leadId, 'OUTBOUND', aiResponse);
+
+        // Send to WhatsApp
         const phoneId = value?.metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
         const token = process.env.WHATSAPP_TOKEN;
 
@@ -66,11 +135,11 @@ export async function POST(request: Request) {
             to: fromPhone,
             type: "text",
             text: {
-              body: "Thank you for your interest! Please submit your documents securely on our portal: https://www.avanifinserv.com/documents. For any further assistance, you can also reach our official WhatsApp number: +91 9175635165."
+              body: aiResponse
             }
           };
 
-          const response = await fetch(endpoint, {
+          await fetch(endpoint, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -78,12 +147,6 @@ export async function POST(request: Request) {
             },
             body: JSON.stringify(replyPayload)
           });
-
-          if (response.ok) {
-            console.log(`Successfully sent document link reply to ${fromPhone}`);
-          } else {
-            console.error(`Failed to send auto-reply. Status: ${response.status}`);
-          }
         }
       }
     }

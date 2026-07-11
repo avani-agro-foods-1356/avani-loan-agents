@@ -26,9 +26,9 @@ export async function orchestrateLeadSync(leadId: string, event_type: string = '
 
   console.log(`Starting orchestrator sync for lead: ${lead.name} (ID: ${leadId}), Event: ${event_type}`);
 
-  if (event_type === 'missed_call') {
-    // Only send the WhatsApp Meta Missed Call template
-    const metaWaResult = await sendWhatsAppMeta(lead, 'missed_call');
+  if (event_type === 'missed_call' || event_type === 'start_wa_flow') {
+    // Only send the WhatsApp Meta template to initiate the conversational flow
+    const metaWaResult = await sendWhatsAppMeta(lead, event_type);
     return {
       hubspot: { success: false, message: 'Skipped' },
       sheets: { success: false, message: 'Skipped' },

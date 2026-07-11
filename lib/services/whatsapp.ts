@@ -141,8 +141,8 @@ export async function sendWhatsAppMeta(lead: Lead, event_type: string = 'interes
   let components: any[] = [];
   const refNumber = `REF-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  if (event_type === 'missed_call') {
-    // Use the user's requested template for missed calls
+  if (event_type === 'missed_call' || event_type === 'start_wa_flow') {
+    // Use the user's requested template for missed calls and the new auto-flow
     templateName = "loan_consultation_offer";
     components = [
       {
