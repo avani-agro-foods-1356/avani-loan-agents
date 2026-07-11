@@ -159,7 +159,7 @@ export async function POST(request: Request) {
         console.log("Calling Gemini API...");
         try {
           const { text: aiResponse } = await generateText({
-            model: google('gemini-2.5-flash'),
+            model: google('gemini-1.5-flash'),
             system: SYSTEM_PROMPT,
             messages: aiMessages as any
           });
