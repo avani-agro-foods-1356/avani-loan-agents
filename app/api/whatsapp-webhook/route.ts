@@ -154,7 +154,7 @@ export async function POST(request: Request) {
 
         // Send to WhatsApp
         const phoneId = value?.metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
-        const token = process.env.WHATSAPP_TOKEN;
+        const token = process.env.WHATSAPP_API_TOKEN || process.env.WHATSAPP_TOKEN;
 
         if (phoneId && token) {
           const endpoint = `https://graph.facebook.com/v19.0/${phoneId}/messages`;

@@ -118,7 +118,7 @@ Email: enquiry@avanifinserv.com`;
 }
 
 export async function sendWhatsAppMeta(lead: Lead, event_type: string = 'interested'): Promise<SyncResult> {
-  const token = process.env.WHATSAPP_TOKEN;
+  const token = process.env.WHATSAPP_API_TOKEN || process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
   if (!token || !phoneId) {
