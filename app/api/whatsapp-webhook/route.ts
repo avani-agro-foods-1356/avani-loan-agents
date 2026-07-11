@@ -83,7 +83,6 @@ PROPERTY DOCUMENTS: Sale agreement / allotment letter, Property title deed, NOC 
 (Also require Income/Identity proofs based on whether Salaried, Business, or Professional as listed above).
 `;
 
-// Handle incoming messages from WhatsApp users
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -112,45 +111,57 @@ export async function POST(request: Request) {
 
         console.log(`Received WhatsApp message from ${fromPhone}: ${incomingText}`);
 
-        // Ensure Lead exists
-        const leadId = await saveLead({
-          name: "WhatsApp User",
-          phone: fromPhone,
-          loan_type: "Unknown",
-          loan_amount: 0,
-          monthly_income: 0,
-          employment_type: "Unknown",
-          eligibility_status: "Engaged via WhatsApp",
-          eligibility_reason: "Chatting with AI",
-          source: "WhatsApp",
-          hubspot_synced: 0,
-          sheets_synced: 0,
-          make_synced: 0,
-          pabbly_synced: 0,
-          pickyassist_synced: 0
-        });
+        let dbMessages: any[] = [];
+        let leadId: string | null = null;
 
-        // Save incoming message
-        await saveMessage(leadId, 'INBOUND', incomingText);
+        // Try to save to DB, but don't crash if it fails (e.g., missing DATABASE_URL)
+        try {
+          leadId = await saveLead({
+            name: "WhatsApp User",
+            phone: fromPhone,
+            loan_type: "Unknown",
+            loan_amount: 0,
+            monthly_income: 0,
+            employment_type: "Unknown",
+            eligibility_status: "Engaged via WhatsApp",
+            eligibility_reason: "Chatting with AI",
+            source: "WhatsApp",
+            hubspot_synced: 0,
+            sheets_synced: 0,
+            make_synced: 0,
+            pabbly_synced: 0,
+            pickyassist_synced: 0
+          });
+          await saveMessage(leadId, 'INBOUND', incomingText);
+          dbMessages = await getContactMessages(fromPhone);
+        } catch (dbError) {
+          console.error("Database connection error (continuing without DB):", dbError);
+          // Fallback to just using the current message if DB is down
+          dbMessages = [{ direction: 'INBOUND', content: incomingText }];
+        }
 
-        // Fetch history
-        const dbMessages = await getContactMessages(fromPhone);
-        
         // Convert to AI SDK format
         const aiMessages = dbMessages.map(m => ({
           role: m.direction === 'INBOUND' ? 'user' : 'assistant',
           content: m.content
         }));
 
+        console.log("Calling Gemini API...");
         // Generate response using Gemini
         const { text: aiResponse } = await generateText({
           model: google('gemini-2.5-flash'),
           system: SYSTEM_PROMPT,
           messages: aiMessages as any
         });
+        console.log("Gemini response generated:", aiResponse.substring(0, 50) + "...");
 
-        // Save outbound message
-        await saveMessage(leadId, 'OUTBOUND', aiResponse);
+        if (leadId) {
+          try {
+            await saveMessage(leadId, 'OUTBOUND', aiResponse);
+          } catch (e) {
+            console.error("Failed to save outbound message to DB:", e);
+          }
+        }
 
         // Send to WhatsApp
         const phoneId = value?.metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -167,21 +178,36 @@ export async function POST(request: Request) {
             }
           };
 
-          await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(replyPayload)
-          });
+          console.log(`Sending response to Meta API for phone ${fromPhone}...`);
+          try {
+            const metaResponse = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(replyPayload)
+            });
+            
+            const metaData = await metaResponse.text();
+            console.log(`Meta API Response Status: ${metaResponse.status}`);
+            if (!metaResponse.ok) {
+              console.error(`Meta API Error Details: ${metaData}`);
+            }
+          } catch (fetchError) {
+            console.error("Failed to reach Meta API:", fetchError);
+          }
+        } else {
+          console.error("Missing phoneId or token. Cannot send WhatsApp reply.");
+          console.log("phoneId:", !!phoneId, "token:", !!token);
         }
       }
     }
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("WhatsApp Webhook Error:", error);
-    return NextResponse.json({ success: false }, { status: 500 });
+    console.error("WhatsApp Webhook Fatal Error:", error);
+    // Return 200 anyway so Meta doesn't disable the webhook!
+    return NextResponse.json({ success: true });
   }
 }
