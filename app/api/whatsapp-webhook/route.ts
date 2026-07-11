@@ -26,7 +26,10 @@ export async function GET(request: Request) {
 
 import { saveLead, saveMessage, getContactMessages } from '../../../lib/db/client';
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+const google = createGoogleGenerativeAI({
+  apiKey: (process.env.GOOGLE_GENERATIVE_AI_API_KEY || '').trim()
+});
 
 const SYSTEM_PROMPT = `You are the Avani Loan Services AI Agent.
 Your goal is to collect loan requirements from the user step-by-step in a conversational manner.
@@ -148,7 +151,12 @@ export async function POST(request: Request) {
           content: m.content
         }));
 
-        log("Calling Gemini API...");
+        log(`API Key present: ${!!process.env.GOOGLE_GENERATIVE_AI_API_KEY}`);
+        if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+           log(`API Key starts with: ${process.env.GOOGLE_GENERATIVE_AI_API_KEY.substring(0, 5)}`);
+        }
+
+        console.log("Calling Gemini API...");
         try {
           const { text: aiResponse } = await generateText({
             model: google('gemini-2.5-flash'),
