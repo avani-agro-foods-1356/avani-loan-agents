@@ -84,8 +84,12 @@ PROPERTY DOCUMENTS: Sale agreement / allotment letter, Property title deed, NOC 
 `;
 
 export async function POST(request: Request) {
+  const debugLogs: string[] = [];
+  const log = (msg: string) => { console.log(msg); debugLogs.push(msg); };
+  
   try {
     const body = await request.json();
+    log("Received body: " + JSON.stringify(body).substring(0, 200));
     
     if (body.object === 'whatsapp_business_account') {
       const entry = body.entry?.[0];
@@ -107,14 +111,13 @@ export async function POST(request: Request) {
                          message.interactive?.list_reply?.title || "";
         }
 
-        if (!incomingText) return NextResponse.json({ success: true });
+        if (!incomingText) return NextResponse.json({ success: true, debugLogs });
 
-        console.log(`Received WhatsApp message from ${fromPhone}: ${incomingText}`);
+        log(`Parsed incoming message from ${fromPhone}: ${incomingText}`);
 
         let dbMessages: any[] = [];
         let leadId: string | null = null;
 
-        // Try to save to DB, but don't crash if it fails (e.g., missing DATABASE_URL)
         try {
           leadId = await saveLead({
             name: "WhatsApp User",
@@ -134,52 +137,47 @@ export async function POST(request: Request) {
           });
           await saveMessage(leadId, 'INBOUND', incomingText);
           dbMessages = await getContactMessages(fromPhone);
-        } catch (dbError) {
-          console.error("Database connection error (continuing without DB):", dbError);
-          // Fallback to just using the current message if DB is down
+          log("Saved to DB successfully");
+        } catch (dbError: any) {
+          log("DB Error: " + dbError?.message);
           dbMessages = [{ direction: 'INBOUND', content: incomingText }];
         }
 
-        // Convert to AI SDK format
         const aiMessages = dbMessages.map(m => ({
           role: m.direction === 'INBOUND' ? 'user' : 'assistant',
           content: m.content
         }));
 
-        console.log("Calling Gemini API...");
-        // Generate response using Gemini
-        const { text: aiResponse } = await generateText({
-          model: google('gemini-2.5-flash'),
-          system: SYSTEM_PROMPT,
-          messages: aiMessages as any
-        });
-        console.log("Gemini response generated:", aiResponse.substring(0, 50) + "...");
+        log("Calling Gemini API...");
+        try {
+          const { text: aiResponse } = await generateText({
+            model: google('gemini-2.5-flash'),
+            system: SYSTEM_PROMPT,
+            messages: aiMessages as any
+          });
+          log("Gemini response generated successfully.");
 
-        if (leadId) {
-          try {
-            await saveMessage(leadId, 'OUTBOUND', aiResponse);
-          } catch (e) {
-            console.error("Failed to save outbound message to DB:", e);
-          }
-        }
-
-        // Send to WhatsApp
-        const phoneId = value?.metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
-        const token = process.env.WHATSAPP_API_TOKEN || process.env.WHATSAPP_TOKEN;
-
-        if (phoneId && token) {
-          const endpoint = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
-          const replyPayload = {
-            messaging_product: "whatsapp",
-            to: fromPhone,
-            type: "text",
-            text: {
-              body: aiResponse
+          if (leadId) {
+            try {
+              await saveMessage(leadId, 'OUTBOUND', aiResponse);
+            } catch (e) {
+              log("Failed to save outbound to DB");
             }
-          };
+          }
 
-          console.log(`Sending response to Meta API for phone ${fromPhone}...`);
-          try {
+          const phoneId = value?.metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
+          const token = process.env.WHATSAPP_API_TOKEN || process.env.WHATSAPP_TOKEN;
+
+          if (phoneId && token) {
+            const endpoint = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+            const replyPayload = {
+              messaging_product: "whatsapp",
+              to: fromPhone,
+              type: "text",
+              text: { body: aiResponse }
+            };
+
+            log(`Sending to Meta API... phoneId=${phoneId}, toPhone=${fromPhone}`);
             const metaResponse = await fetch(endpoint, {
               method: 'POST',
               headers: {
@@ -190,24 +188,24 @@ export async function POST(request: Request) {
             });
             
             const metaData = await metaResponse.text();
-            console.log(`Meta API Response Status: ${metaResponse.status}`);
+            log(`Meta API Status: ${metaResponse.status}`);
             if (!metaResponse.ok) {
-              console.error(`Meta API Error Details: ${metaData}`);
+              log(`Meta API Error: ${metaData}`);
+            } else {
+              log("Meta API Success!");
             }
-          } catch (fetchError) {
-            console.error("Failed to reach Meta API:", fetchError);
+          } else {
+            log(`Missing phoneId (${!!phoneId}) or token (${!!token})`);
           }
-        } else {
-          console.error("Missing phoneId or token. Cannot send WhatsApp reply.");
-          console.log("phoneId:", !!phoneId, "token:", !!token);
+        } catch (geminiError: any) {
+          log("Gemini Error: " + geminiError?.message);
         }
       }
     }
     
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("WhatsApp Webhook Fatal Error:", error);
-    // Return 200 anyway so Meta doesn't disable the webhook!
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, debugLogs });
+  } catch (error: any) {
+    log("Fatal Error: " + error?.message);
+    return NextResponse.json({ success: true, debugLogs });
   }
 }
