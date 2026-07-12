@@ -14,8 +14,10 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
     // Check for API key
-    if (!process.env.GEMINI_API_KEY) {
+    if (!apiKey) {
       console.warn("GEMINI_API_KEY is not defined in env variables. Web chat will use mock response mode.");
       // Return a simulated readable response if API key is not present to avoid server crash
       return new Response(
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     const google = createGoogleGenerativeAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: apiKey,
     });
 
     const result = await streamText({
