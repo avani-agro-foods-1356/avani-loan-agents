@@ -137,39 +137,15 @@ export async function sendWhatsAppMeta(lead: Lead, event_type: string = 'interes
   }
   
   // Determine template based on event_type and loan type
-  let templateName = "personal_loan_application_status"; // Default
-  let components: any[] = [];
-  const refNumber = `REF-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  if (event_type === 'missed_call' || event_type === 'start_wa_flow') {
-    // Use the user's requested template for missed calls and the new auto-flow
-    templateName = "loan_consultation_offer";
-    components = [];
-  } else {
-    // Normal interested flow
-    const lType = lead.loan_type?.toLowerCase() || "";
-    
-    if (lType.includes("business")) templateName = "business_loan_status_update";
-    else if (lType.includes("doctor")) templateName = "doctor_loan_application_update";
-    else if (lType.includes("ca ") || lType.includes("chartered")) templateName = "ca_loan_application_update";
-    else if (lType.includes("home")) templateName = "home_loan_status_update";
-    else if (lType.includes("mortgage")) templateName = "mortgage_loan_status_update";
-    else if (lType.includes("education") && lType.includes("global")) templateName = "education_loan_global_update";
-    else if (lType.includes("education")) templateName = "education_loan_india_update";
-    else if (lType.includes("school")) templateName = "school_funding_application_update";
-    else if (lType.includes("college")) templateName = "college_funding_application_update";
-
-    components = [
-      {
-        type: "body",
-        parameters: [
-          { type: "text", text: lead.name || "Customer" },
-          { type: "text", text: refNumber },
-          { type: "text", text: "Under Review" }
-        ]
-      }
-    ];
-  }
+  let templateName = "personal_loan_inquiry";
+  let components: any[] = [
+    {
+      type: "body",
+      parameters: [
+        { type: "text", text: lead.name || "Customer" }
+      ]
+    }
+  ];
 
   // Define the Meta template payload
   const payload = {
@@ -202,7 +178,7 @@ export async function sendWhatsAppMeta(lead: Lead, event_type: string = 'interes
     } else {
       const errorText = await response.text();
       console.error(`Meta WhatsApp failed: Status ${response.status}. Details: ${errorText}`);
-      return { success: false, message: `Meta API returned status ${response.status}` };
+      return { success: false, message: `Meta API returned status ${response.status}: ${errorText}` };
     }
   } catch (error: any) {
     console.error("Meta WhatsApp sync network error:", error);
