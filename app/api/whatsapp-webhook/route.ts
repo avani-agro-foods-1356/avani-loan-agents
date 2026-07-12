@@ -129,7 +129,7 @@ IF RENTAL INCOME: *AADHAR CARD *PAN CARD *RENTAL AGREEMENTS *LATEST 6MONTHS BANK
 MOTHER: AADHAR CARD, PAN CARD, MAIL ID AND NUMBER, OWN HOUSE PROOF(PROPERTY TAX), POWER BILL(LASTEST)
 ANY TWO REFERENCES: NAME, NUMBER, MAIL ID, FULL ADDRESS. KINDLY SHARE DOC AS PER CHECKLIST.
 FINANCIAL DOCUMENTS: ✅ Co-applicant KYC (PAN & Aadhaar) ✅ Co-applicant income proof ✅ ITR (2 years) ✅ Bank statements (1 year) ✅ Property documents (if collateral loan)
-\`;
+`;
 
 export async function POST(request: Request) {
   const debugLogs: string[] = [];

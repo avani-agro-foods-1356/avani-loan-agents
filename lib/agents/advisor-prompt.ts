@@ -111,4 +111,4 @@ FINAL INSTRUCTIONS:
 2. **MANDATORY FOOTER:** You MUST append the following text to the very end of EVERY SINGLE MESSAGE you send, no exceptions:
 "https://www.avanifinserv.com/contact
 https://wa.me/919175635165"
-`;`;
+`;
