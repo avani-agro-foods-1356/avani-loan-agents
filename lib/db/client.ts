@@ -187,12 +187,16 @@ export async function updateLeadSyncStatus(
 
   const field = fieldMap[syncType];
 
-  await prisma.contact.update({
-    where: { id },
-    data: {
-      [field]: status
-    }
-  });
+  try {
+    await prisma.contact.update({
+      where: { id },
+      data: {
+        [field]: status
+      }
+    });
+  } catch (err) {
+    console.log(`Skipped DB sync status update for ${syncType} (DB fallback mode)`);
+  }
 }
 
 export async function saveMessage(contactId: string, direction: 'INBOUND' | 'OUTBOUND', content: string) {

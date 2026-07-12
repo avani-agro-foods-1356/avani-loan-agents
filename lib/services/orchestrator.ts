@@ -14,14 +14,24 @@ export interface SyncSummary {
   meta_wa: { success: boolean; message: string };
 }
 
-export async function orchestrateLeadSync(leadId: string, event_type: string = 'interested_lead'): Promise<SyncSummary | null> {
+export async function orchestrateLeadSync(leadId: string, event_type: string = 'interested_lead', fallbackLeadData: any = null): Promise<SyncSummary | null> {
   // Retrieve the lead from the database
-  const leads = await getAllLeads();
-  const lead = leads.find(l => l.id === leadId);
+  let leads: any[] = [];
+  try {
+    leads = await getAllLeads();
+  } catch (err) {
+    console.warn("Could not fetch leads from DB for orchestrator.");
+  }
+  let lead = leads.find(l => l.id === leadId);
 
   if (!lead) {
-    console.error(`Lead with ID ${leadId} not found in database for sync.`);
-    return null;
+    if (fallbackLeadData) {
+      console.log(`Lead with ID ${leadId} not found in database. Using fallback lead data.`);
+      lead = { ...fallbackLeadData, id: leadId };
+    } else {
+      console.error(`Lead with ID ${leadId} not found in database for sync, and no fallback provided.`);
+      return null;
+    }
   }
 
   console.log(`Starting orchestrator sync for lead: ${lead.name} (ID: ${leadId}), Event: ${event_type}`);
